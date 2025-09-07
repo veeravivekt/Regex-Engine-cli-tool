@@ -3,8 +3,14 @@ import sys
 def match_pattern(input_line, pattern):
     if len(pattern) == 1:
         return pattern in input_line
+    elif pattern == '\d':
+        if any(char.isdigit() for char in input_line):
+            exit(0)
+        else:
+            exit(1)
     else:
         raise RuntimeError(f"Unhandled pattern: {pattern}")
+
 
 def main():
     pattern = sys.argv[2]
@@ -15,6 +21,12 @@ def main():
         exit(1)
 
     print("Logs from your program will appear here!", file=sys.stderr)
+
+    if match_pattern(input_line, pattern):
+        exit(0)
+    else:
+        exit(1)
+
 
 if __name__ == "__main__":
     main()
