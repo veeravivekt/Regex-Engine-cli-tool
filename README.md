@@ -68,4 +68,31 @@ A step-by-step project to build a simplified `grep` with regex support from scra
   - **`[^]` (empty negated set)** → matches **any character**, since no characters are excluded.
   - **Newlines from stdin** (`echo` without `-n`) may count as characters — be consistent with earlier steps.
 
+--
+
+### Step 6: Combining Character Classes
+- Adds support for **patterns that combine multiple tokens** (`\d`, `\w`, `[abc]`, `[^abc]`, and literals) in sequence.  
+- **Implementation:** the pattern is first tokenized into a list of matchers, then the input string is scanned **character by character** to check if the entire sequence appears consecutively at any position.  
+- **Notes:**
+  - Spaces in the pattern are treated as **literal spaces** (important for matching phrases like `\d apple`).  
+  - Matching is done left-to-right; the whole token sequence must succeed for a match.  
+  - Still limited to exact sequences — quantifiers (`+`, `*`, `?`) and wildcards (`.`) are **not yet supported**.
+
+- **Examples:**
+```bash
+  echo -n "1 apple"     | ./your_program.sh -E "\d apple"      # exit 0 (digit + space + "apple")
+  echo -n "1 orange"    | ./your_program.sh -E "\d apple"      # exit 1 (does not match "apple")
+  echo -n "100 apples"  | ./your_program.sh -E "\d\d\d apple"  # exit 0 (three digits + " apple")
+  echo -n "3 dogs"      | ./your_program.sh -E "\d \w\w\ws"    # exit 0 (digit + space + 3 word chars + "s")
+  echo -n "4 cats"      | ./your_program.sh -E "\d \w\w\ws"    # exit 0 (digit + space + 3 word chars + "s")
+  echo -n "1 dog"       | ./your_program.sh -E "\d \w\w\ws"    # exit 1 (missing the "s")
+```
+
+* **Edge Cases:**
+
+  * Pattern longer than input → always fails.
+  * Empty pattern → not supported (raises error or always false).
+  * Input with trailing newline (`\n`) from `stdin.read()` may affect matches unless stripped.
+
+---
 
