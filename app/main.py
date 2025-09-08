@@ -5,6 +5,13 @@ def match_pattern(input_line, pattern):
         return any(char.isdigit() for char in input_line)
     elif pattern == r'\w':
         return any(char.isalnum() or char == '_' for char in input_line)
+    elif len(pattern) >= 2 and (pattern[0] == '[' and pattern[-1] == ']'):
+        cls = pattern[1:-1]
+        if cls[0] == "^":
+            cls_negative = cls[1:]
+            return any(char not in cls_negative for char in input_line)
+        else:
+            return any(char in cls for char in input_line)
     elif len(pattern) == 1:
             return pattern in input_line
     else:
