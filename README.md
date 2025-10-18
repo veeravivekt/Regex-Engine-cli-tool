@@ -163,3 +163,25 @@ echo -n "123abc"    | ./your_program.sh -E "^\d+"      # exit 0 (digits at start
 ```
 
 ---
+
+### Step 10: Zero-or-One Quantifier (`?`)
+- Adds support for the **optional** quantifier `?`.
+- **Behavior:** the `?` applies to the immediately preceding element and allows it to appear either once or not at all (greedy: prefers one when possible).
+- **Implementation:**
+  - Tokenizer wraps the preceding token into a `ZERO_OR_ONE` token when encountering `?`.
+  - The matcher tries to consume one occurrence if it matches; otherwise it proceeds with zero.
+  - If there is no valid preceding token (e.g., pattern starts with `?`), `?` is treated as a literal question mark.
+- **Examples:**
+```bash
+echo -n "dog"     | ./your_program.sh -E "dogs?"     # exit 0 (zero 's')
+echo -n "dogs"    | ./your_program.sh -E "dogs?"     # exit 0 (one 's')
+echo -n "dogss"   | ./your_program.sh -E "dogs?"     # exit 1 (two 's')
+echo -n "cat"     | ./your_program.sh -E "dogs?"     # exit 1 (doesn't match "dog")
+echo -n "color"   | ./your_program.sh -E "colou?r"   # exit 0 (zero 'u')
+echo -n "colour"  | ./your_program.sh -E "colou?r"   # exit 0 (one 'u')
+echo -n "5"       | ./your_program.sh -E "\d?"        # exit 0 (one digit)
+echo -n ""        | ./your_program.sh -E "\d?"        # exit 0 (zero digits)
+```
+
+---
+

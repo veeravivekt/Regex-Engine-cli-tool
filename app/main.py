@@ -48,11 +48,18 @@ def tokenize(pattern: str):
                 tokens.append(Token("LITERAL", value="$"))
             i += 1
         elif ch == "+":
-            if tokens and tokens[-1].type not in ("START_STRING",):
+            if tokens and tokens[-1].type not in ("START_STRING", "END_STRING", "ONE_OR_MORE", "ZERO_OR_ONE"):
                 prev = tokens.pop()
                 tokens.append(Token("ONE_OR_MORE", value=prev))
             else:
                 tokens.append(Token("LITERAL", value="+"))
+            i += 1
+        elif ch == "?":
+            if tokens and tokens[-1].type not in ("START_STRING", "END_STRING", "ONE_OR_MORE", "ZERO_OR_ONE"):
+                prev = tokens.pop()
+                tokens.append(Token("ZERO_OR_ONE", value=prev))
+            else:
+                tokens.append(Token("LITERAL", value="?"))
             i += 1
         else:
             tokens.append(Token("LITERAL", value=ch))
@@ -102,6 +109,13 @@ def match_tokens(tokens, input_str, start_index, must_end_at_eos):
                 if dfs(token_index + 1, input_index + used):
                     return True
             return False
+
+        if tok.type == "ZERO_OR_ONE":
+            base = tok.value
+            if input_index < len(input_str) and token_matches(base, input_str[input_index]):
+                if dfs(token_index + 1, input_index + 1):
+                    return True
+            return dfs(token_index + 1, input_index)
 
         if input_index >= len(input_str):
             return False
