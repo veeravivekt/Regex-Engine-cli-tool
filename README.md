@@ -201,3 +201,19 @@ echo -n "a1b" | ./your_program.sh -E ".\d." # exit 0 (any, digit, any)
 ```
 
 ---
+
+### Step 12: Alternation (`|`) and Grouping (`( )`)
+- Adds support for alternation between multiple subpatterns using `|`, grouped inside parentheses.
+- **Behavior:** `(cat|dog)` matches either "cat" or "dog". Alternation can include more than two options: `(red|blue|green)`.
+- **Implementation:** groups are parsed, split on top-level `|` into alternatives, and each alternative is tokenized and tried in order.
+- **Examples:**
+```bash
+echo -n "cat"        | ./your_program.sh -E "(cat|dog)"       # exit 0
+echo -n "dog"        | ./your_program.sh -E "(cat|dog)"       # exit 0
+echo -n "apple"      | ./your_program.sh -E "(cat|dog)"       # exit 1
+echo -n "doghouse"   | ./your_program.sh -E "(cat|dog)"       # exit 0 (matches "dog")
+echo -n "I like cats"| ./your_program.sh -E "I like (cats|dogs)" # exit 0
+echo -n "blue"       | ./your_program.sh -E "(red|blue|green)" # exit 0
+```
+
+---

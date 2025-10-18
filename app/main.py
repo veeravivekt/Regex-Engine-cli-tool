@@ -6,6 +6,37 @@ class Token:
         self.value = value
         self.chars = chars
 
+def _split_alternatives(segment: str):
+    parts = []
+    current = []
+    paren_depth = 0
+    bracket_depth = 0
+    i = 0
+    while i < len(segment):
+        ch = segment[i]
+        if ch == "\\" and i + 1 < len(segment):
+            current.append(segment[i])
+            current.append(segment[i + 1])
+            i += 2
+            continue
+        if ch == "[":
+            bracket_depth += 1
+        elif ch == "]" and bracket_depth > 0:
+            bracket_depth -= 1
+        elif ch == "(":
+            paren_depth += 1
+        elif ch == ")" and paren_depth > 0:
+            paren_depth -= 1
+        elif ch == "|" and paren_depth == 0 and bracket_depth == 0:
+            parts.append("".join(current))
+            current = []
+            i += 1
+            continue
+        current.append(ch)
+        i += 1
+    parts.append("".join(current))
+    return parts
+
 def tokenize(pattern: str):
     tokens = []
     i = 0
@@ -34,6 +65,35 @@ def tokenize(pattern: str):
             else:
                 tokens.append(Token("POS_CLASS", chars=set(body)))
             i = j + 1
+            continue
+        elif ch == "(":
+            j = i + 1
+            depth = 1
+            while j < len(pattern) and depth > 0:
+                if pattern[j] == "\\" and j + 1 < len(pattern):
+                    j += 2
+                    continue
+                if pattern[j] == "[":
+                    k = j + 1
+                    while k < len(pattern) and pattern[k] != "]":
+                        if pattern[k] == "\\" and k + 1 < len(pattern):
+                            k += 2
+                            continue
+                        k += 1
+                    j = k + 1
+                    continue
+                if pattern[j] == "(":
+                    depth += 1
+                elif pattern[j] == ")":
+                    depth -= 1
+                j += 1
+            if depth != 0:
+                raise RuntimeError("Unclosed group")
+            body = pattern[i + 1 : j - 1]
+            alts = _split_alternatives(body)
+            alt_tokens = [tokenize(alt) for alt in alts]
+            tokens.append(Token("ALTERNATION", value=alt_tokens))
+            i = j
             continue
         elif ch == "^":
             if i == 0:
@@ -100,6 +160,14 @@ def match_tokens(tokens, input_str, start_index, must_end_at_eos):
             return (input_index == len(input_str)) if must_end_at_eos else True
 
         tok = tokens[token_index]
+
+        if tok.type == "ALTERNATION":
+            remainder = tokens[token_index + 1 :]
+            for alt in tok.value:
+                combined = alt + remainder
+                if match_tokens(combined, input_str, input_index, must_end_at_eos):
+                    return True
+            return False
 
         if tok.type == "ONE_OR_MORE":
             base = tok.value
