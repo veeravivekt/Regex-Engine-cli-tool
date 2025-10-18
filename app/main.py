@@ -37,7 +37,9 @@ def _split_alternatives(segment: str):
     parts.append("".join(current))
     return parts
 
-def tokenize(pattern: str):
+def tokenize(pattern: str, state=None):
+    if state is None:
+        state = {"next_group_id": 1}
     tokens = []
     i = 0
     while i < len(pattern):
@@ -46,14 +48,23 @@ def tokenize(pattern: str):
             nxt = pattern[i + 1]
             if nxt == "d":
                 tokens.append(Token("DIGIT"))
+                i += 2
+                continue
             elif nxt == "w":
                 tokens.append(Token("WORD"))
-            elif nxt == "1":
-                tokens.append(Token("BACKREF", value=1))
+                i += 2
+                continue
+            elif nxt.isdigit():
+                j = i + 1
+                while j < len(pattern) and pattern[j].isdigit():
+                    j += 1
+                tokens.append(Token("BACKREF", value=int(pattern[i + 1 : j])))
+                i = j
+                continue
             else:
                 tokens.append(Token("LITERAL", value=nxt))
-            i += 2
-            continue
+                i += 2
+                continue
         elif ch == "[":
             j = i + 1
             while j < len(pattern) and pattern[j] != "]":
@@ -88,19 +99,20 @@ def tokenize(pattern: str):
                     depth += 1
                 elif pattern[j] == ")":
                     depth -= 1
-                j += 1
+                j += 1 
             if depth != 0:
                 raise RuntimeError("Unclosed group")
             body = pattern[i + 1 : j - 1]
             alts = _split_alternatives(body)
-            # Wrap this group as a capturing group
-            tokens.append(Token("CAPTURE_START"))
+            gid = state["next_group_id"]
+            state["next_group_id"] += 1
+            tokens.append(Token("CAPTURE_START", value=gid))
             if len(alts) == 1:
-                tokens.extend(tokenize(alts[0]))
+                tokens.extend(tokenize(alts[0], state))
             else:
-                alt_tokens = [tokenize(alt) for alt in alts]
+                alt_tokens = [tokenize(alt, state) for alt in alts]
                 tokens.append(Token("ALTERNATION", value=alt_tokens))
-            tokens.append(Token("CAPTURE_END"))
+            tokens.append(Token("CAPTURE_END", value=gid))
             i = j
             continue
         elif ch == "^":
@@ -163,7 +175,11 @@ def match_from(tokens, input_str, start):
 
 def match_tokens(tokens, input_str, start_index, must_end_at_eos):
 
-    def dfs(token_index, input_index, capture_start_idx=None, capture_value=None):
+    def dfs(token_index, input_index, capture_start_idx_stack=None, captures=None):
+        if capture_start_idx_stack is None:
+            capture_start_idx_stack = []
+        if captures is None:
+            captures = {}
         if token_index == len(tokens):
             return (input_index == len(input_str)) if must_end_at_eos else True
 
@@ -172,25 +188,31 @@ def match_tokens(tokens, input_str, start_index, must_end_at_eos):
         if tok.type == "ALTERNATION":
             remainder = tokens[token_index + 1 :]
             for alt in tok.value:
-                combined = alt + remainder
+                    combined = alt + remainder
                 if match_tokens(combined, input_str, input_index, must_end_at_eos):
                     return True
             return False
 
         if tok.type == "CAPTURE_START":
-            return dfs(token_index + 1, input_index, input_index, capture_value)
+            return dfs(token_index + 1, input_index, capture_start_idx_stack + [input_index], captures.copy())
 
         if tok.type == "CAPTURE_END":
-            if capture_start_idx is not None and capture_value is None:
-                capture_value = input_str[capture_start_idx:input_index]
-            return dfs(token_index + 1, input_index, None, capture_value)
+            gid = tok.value
+            if not capture_start_idx_stack:
+                return False
+            start_idx = capture_start_idx_stack[-1]
+            new_captures = captures.copy()
+            new_captures[gid] = input_str[start_idx:input_index]
+            return dfs(token_index + 1, input_index, capture_start_idx_stack[:-1], new_captures)
 
         if tok.type == "BACKREF":
-            if capture_value is None:
+            ref = tok.value
+            if ref not in captures:
                 return False
-            end_index = input_index + len(capture_value)
-            if input_str[input_index:end_index] == capture_value:
-                return dfs(token_index + 1, end_index, capture_start_idx, capture_value)
+            ref_text = captures[ref]
+            end_index = input_index + len(ref_text)
+            if input_str[input_index:end_index] == ref_text:
+                return dfs(token_index + 1, end_index, capture_start_idx_stack, captures)
             return False
 
         if tok.type == "ONE_OR_MORE":
@@ -203,22 +225,22 @@ def match_tokens(tokens, input_str, start_index, must_end_at_eos):
             if count == 0:
                 return False
             for used in range(count, 0, -1):
-                if dfs(token_index + 1, input_index + used, capture_start_idx, capture_value):
+                if dfs(token_index + 1, input_index + used, capture_start_idx_stack, captures):
                     return True
             return False
 
         if tok.type == "ZERO_OR_ONE":
             base = tok.value
             if input_index < len(input_str) and token_matches(base, input_str[input_index]):
-                if dfs(token_index + 1, input_index + 1, capture_start_idx, capture_value):
+                if dfs(token_index + 1, input_index + 1, capture_start_idx_stack, captures):
                     return True
-            return dfs(token_index + 1, input_index, capture_start_idx, capture_value)
+            return dfs(token_index + 1, input_index, capture_start_idx_stack, captures)
 
         if input_index >= len(input_str):
             return False
         if not token_matches(tok, input_str[input_index]):
             return False
-        return dfs(token_index + 1, input_index + 1, capture_start_idx, capture_value)
+        return dfs(token_index + 1, input_index + 1, capture_start_idx_stack, captures)
 
     return dfs(0, start_index)
 

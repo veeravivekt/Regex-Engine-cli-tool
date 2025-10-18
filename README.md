@@ -233,3 +233,17 @@ echo -n "123-123"     | ./your_program.sh -E "(\d+) - \1"    # exit 0 (with spac
 ```
 
 ---
+
+### Step 14: Multiple Capturing Groups and Backreferences (`\1`, `\2`, ...)
+- Extends backreference support to multiple groups and references.
+- **Behavior:** each pair of parentheses defines an incrementing group number; `\1`, `\2`, ... must match exactly what their corresponding group matched previously.
+- **Examples:**
+```bash
+echo -n "3 red and 3 red"     | ./your_program.sh -E "(\d+) (\w+) and \1 \2"      # 0
+echo -n "3 red and 4 red"     | ./your_program.sh -E "(\d+) (\w+) and \1 \2"      # 1
+echo -n "3 red and 3 blue"    | ./your_program.sh -E "(\d+) (\w+) and \1 \2"      # 1
+echo -n "cat and dog are dog and cat" | ./your_program.sh -E "(cat) and (dog) are \2 and \1" # 0
+echo -n "foo-bar-foo-bar"     | ./your_program.sh -E "(\w+)-(\w+)-\1-\2"          # 0
+```
+
+---
