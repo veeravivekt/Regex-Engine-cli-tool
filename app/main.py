@@ -47,6 +47,13 @@ def tokenize(pattern: str):
             else:
                 tokens.append(Token("LITERAL", value="$"))
             i += 1
+        elif ch == "+":
+            if tokens and tokens[-1].type not in ("START_STRING",):
+                prev = tokens.pop()
+                tokens.append(Token("ONE_OR_MORE", value=prev))
+            else:
+                tokens.append(Token("LITERAL", value="+"))
+            i += 1
         else:
             tokens.append(Token("LITERAL", value=ch))
             i += 1
@@ -74,6 +81,36 @@ def match_from(tokens, input_str, start):
             return False
     return True
 
+def match_tokens(tokens, input_str, start_index, must_end_at_eos):
+
+    def dfs(token_index, input_index):
+        if token_index == len(tokens):
+            return (input_index == len(input_str)) if must_end_at_eos else True
+
+        tok = tokens[token_index]
+
+        if tok.type == "ONE_OR_MORE":
+            base = tok.value
+            j = input_index
+            count = 0
+            while j < len(input_str) and token_matches(base, input_str[j]):
+                j += 1
+                count += 1
+            if count == 0:
+                return False
+            for used in range(count, 0, -1):
+                if dfs(token_index + 1, input_index + used):
+                    return True
+            return False
+
+        if input_index >= len(input_str):
+            return False
+        if not token_matches(tok, input_str[input_index]):
+            return False
+        return dfs(token_index + 1, input_index + 1)
+
+    return dfs(0, start_index)
+
 def match_pattern(input_line: str, pattern: str) -> bool:
     tokens = tokenize(pattern)
 
@@ -83,27 +120,24 @@ def match_pattern(input_line: str, pattern: str) -> bool:
     anchored_start = tokens[0].type == "START_STRING"
     anchored_end = tokens[-1].type == "END_STRING"
 
-    start_idx = 0
     inner_tokens = tokens[1:] if anchored_start else tokens
     if anchored_end:
         inner_tokens = inner_tokens[:-1]
 
     if anchored_start and anchored_end:
-        if len(inner_tokens) != len(input_line):
-            return False
-        return match_from(inner_tokens, input_line, 0)
+        return match_tokens(inner_tokens, input_line, 0, True)
 
     if anchored_start:
-        return match_from(inner_tokens, input_line, 0)
+        return match_tokens(inner_tokens, input_line, 0, False)
 
     if anchored_end:
-        start_idx = len(input_line) - len(inner_tokens)
-        if start_idx < 0:
-            return False
-        return match_from(inner_tokens, input_line, start_idx)
+        for start in range(0, len(input_line) + 1):
+            if match_tokens(inner_tokens, input_line, start, True):
+                return True
+        return False
 
-    for start in range(len(input_line) - len(inner_tokens) + 1):
-        if match_from(inner_tokens, input_line, start):
+    for start in range(0, len(input_line) + 1):
+        if match_tokens(inner_tokens, input_line, start, False):
             return True
     return False
 

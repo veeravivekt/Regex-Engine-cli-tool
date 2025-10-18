@@ -141,3 +141,25 @@ echo -n "dog"       | ./your_program.sh -E "^dog$"       # exit 0 (exact match)
 ```
 
 ---
+
+## Step 9: One-or-More Quantifier (`+`)
+- Adds support for the **greedy one-or-more** quantifier `+`.
+- **Behavior:** the `+` applies to the immediately preceding element (literal, `\d`, `\w`, or character class) and requires it to match one or more times, consuming as many as possible before allowing the rest of the pattern to match.
+- **Implementation:**
+  - Tokenizer wraps the preceding token into a `ONE_OR_MORE` token when encountering `+`.
+  - The matcher uses greedy consumption with backtracking when followed by additional tokens or anchors.
+  - If there is no valid preceding token (e.g., pattern starts with `+`), `+` is treated as a literal plus.
+- **Examples:**
+```bash
+echo -n "apple"     | ./your_program.sh -E "a+"        # exit 0 (one 'a')
+echo -n "SaaS"      | ./your_program.sh -E "a+"        # exit 0 (two 'a')
+echo -n "dog"       | ./your_program.sh -E "a+"        # exit 1 (no 'a')
+echo -n "cats"      | ./your_program.sh -E "ca+ts"     # exit 0 (one 'a')
+echo -n "caats"     | ./your_program.sh -E "ca+ts"     # exit 0 (two 'a')
+echo -n "cts"       | ./your_program.sh -E "ca+ts"     # exit 1 (needs ≥1 'a')
+echo -n "123"       | ./your_program.sh -E "\d+"       # exit 0 (three digits)
+echo -n "abc123"    | ./your_program.sh -E "\d+$"      # exit 0 (digits at end)
+echo -n "123abc"    | ./your_program.sh -E "^\d+"      # exit 0 (digits at start)
+```
+
+---
