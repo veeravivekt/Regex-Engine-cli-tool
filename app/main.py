@@ -48,6 +48,8 @@ def tokenize(pattern: str):
                 tokens.append(Token("DIGIT"))
             elif nxt == "w":
                 tokens.append(Token("WORD"))
+            elif nxt == "1":
+                tokens.append(Token("BACKREF", value=1))
             else:
                 tokens.append(Token("LITERAL", value=nxt))
             i += 2
@@ -91,8 +93,14 @@ def tokenize(pattern: str):
                 raise RuntimeError("Unclosed group")
             body = pattern[i + 1 : j - 1]
             alts = _split_alternatives(body)
-            alt_tokens = [tokenize(alt) for alt in alts]
-            tokens.append(Token("ALTERNATION", value=alt_tokens))
+            # Wrap this group as a capturing group
+            tokens.append(Token("CAPTURE_START"))
+            if len(alts) == 1:
+                tokens.extend(tokenize(alts[0]))
+            else:
+                alt_tokens = [tokenize(alt) for alt in alts]
+                tokens.append(Token("ALTERNATION", value=alt_tokens))
+            tokens.append(Token("CAPTURE_END"))
             i = j
             continue
         elif ch == "^":
@@ -155,7 +163,7 @@ def match_from(tokens, input_str, start):
 
 def match_tokens(tokens, input_str, start_index, must_end_at_eos):
 
-    def dfs(token_index, input_index):
+    def dfs(token_index, input_index, capture_start_idx=None, capture_value=None):
         if token_index == len(tokens):
             return (input_index == len(input_str)) if must_end_at_eos else True
 
@@ -169,6 +177,22 @@ def match_tokens(tokens, input_str, start_index, must_end_at_eos):
                     return True
             return False
 
+        if tok.type == "CAPTURE_START":
+            return dfs(token_index + 1, input_index, input_index, capture_value)
+
+        if tok.type == "CAPTURE_END":
+            if capture_start_idx is not None and capture_value is None:
+                capture_value = input_str[capture_start_idx:input_index]
+            return dfs(token_index + 1, input_index, None, capture_value)
+
+        if tok.type == "BACKREF":
+            if capture_value is None:
+                return False
+            end_index = input_index + len(capture_value)
+            if input_str[input_index:end_index] == capture_value:
+                return dfs(token_index + 1, end_index, capture_start_idx, capture_value)
+            return False
+
         if tok.type == "ONE_OR_MORE":
             base = tok.value
             j = input_index
@@ -179,22 +203,22 @@ def match_tokens(tokens, input_str, start_index, must_end_at_eos):
             if count == 0:
                 return False
             for used in range(count, 0, -1):
-                if dfs(token_index + 1, input_index + used):
+                if dfs(token_index + 1, input_index + used, capture_start_idx, capture_value):
                     return True
             return False
 
         if tok.type == "ZERO_OR_ONE":
             base = tok.value
             if input_index < len(input_str) and token_matches(base, input_str[input_index]):
-                if dfs(token_index + 1, input_index + 1):
+                if dfs(token_index + 1, input_index + 1, capture_start_idx, capture_value):
                     return True
-            return dfs(token_index + 1, input_index)
+            return dfs(token_index + 1, input_index, capture_start_idx, capture_value)
 
         if input_index >= len(input_str):
             return False
         if not token_matches(tok, input_str[input_index]):
             return False
-        return dfs(token_index + 1, input_index + 1)
+        return dfs(token_index + 1, input_index + 1, capture_start_idx, capture_value)
 
     return dfs(0, start_index)
 

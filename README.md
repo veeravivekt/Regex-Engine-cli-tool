@@ -217,3 +217,19 @@ echo -n "blue"       | ./your_program.sh -E "(red|blue|green)" # exit 0
 ```
 
 ---
+
+### Step 13: Capturing Groups and Backreferences (`( )` and `\1`)
+- Adds support for a single capturing group and a single backreference `\1`.
+- **Behavior:** parentheses create a capture of the matched substring; `\1` must match the exact same text later in the pattern.
+- **Implementation:** the engine records the substring matched by the first group and compares it against `\1` when encountered. Works with alternation and other tokens.
+- **Examples:**
+```bash
+echo -n "cat and cat" | ./your_program.sh -E "(cat) and \1"   # exit 0
+echo -n "cat and dog" | ./your_program.sh -E "(cat) and \1"   # exit 1
+echo -n "cat and cat" | ./your_program.sh -E "(\w+) and \1"  # exit 0
+echo -n "dog and dog" | ./your_program.sh -E "(\w+) and \1"  # exit 0
+echo -n "cat and dog" | ./your_program.sh -E "(\w+) and \1"  # exit 1
+echo -n "123-123"     | ./your_program.sh -E "(\d+) - \1"    # exit 0 (with spaces)
+```
+
+---
