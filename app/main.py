@@ -173,9 +173,9 @@ def match_from(tokens, input_str, start):
             return False
     return True
 
-def match_tokens(tokens, input_str, start_index, must_end_at_eos):
+def match_tokens(tokens, input_str, start_index, must_end_at_eos, capture_start_idx_stack=None, captures=None):
 
-    def dfs(token_index, input_index, capture_start_idx_stack=None, captures=None):
+    def dfs(token_index, input_index, capture_start_idx_stack=capture_start_idx_stack, captures=captures):
         if capture_start_idx_stack is None:
             capture_start_idx_stack = []
         if captures is None:
@@ -188,8 +188,8 @@ def match_tokens(tokens, input_str, start_index, must_end_at_eos):
         if tok.type == "ALTERNATION":
             remainder = tokens[token_index + 1 :]
             for alt in tok.value:
-                    combined = alt + remainder
-                if match_tokens(combined, input_str, input_index, must_end_at_eos):
+                combined = alt + remainder
+                if match_tokens(combined, input_str, input_index, must_end_at_eos, capture_start_idx_stack, captures):
                     return True
             return False
 
