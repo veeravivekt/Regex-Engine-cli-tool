@@ -54,6 +54,9 @@ def tokenize(pattern: str):
             else:
                 tokens.append(Token("LITERAL", value="+"))
             i += 1
+        elif ch == ".":
+            tokens.append(Token("ANY"))
+            i += 1
         elif ch == "?":
             if tokens and tokens[-1].type not in ("START_STRING", "END_STRING", "ONE_OR_MORE", "ZERO_OR_ONE"):
                 prev = tokens.pop()
@@ -72,6 +75,8 @@ def token_matches(tok: Token, ch: str) -> bool:
         return ch.isdigit()
     elif tok.type == "WORD":
         return ch.isalnum() or ch == "_"
+    elif tok.type == "ANY":
+        return ch != "\n"
     elif tok.type == "POS_CLASS":
         return ch in tok.chars
     elif tok.type == "NEG_CLASS":

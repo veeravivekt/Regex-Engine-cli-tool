@@ -185,3 +185,19 @@ echo -n ""        | ./your_program.sh -E "\d?"        # exit 0 (zero digits)
 
 ---
 
+### Step 11: Wildcard (`.`)
+- Adds support for the **wildcard** character `.` which matches any single character except a newline.
+- **Behavior:** each `.` consumes exactly one character. Useful as a placeholder.
+- **Implementation:** tokenizer emits an `ANY` token; matcher accepts any non-newline character for it.
+- **Examples:**
+```bash
+echo -n "dog" | ./your_program.sh -E "d.g"   # exit 0 (matches 'o')
+echo -n "dag" | ./your_program.sh -E "d.g"   # exit 0 (matches 'a')
+echo -n "d9g" | ./your_program.sh -E "d.g"   # exit 0 (matches '9')
+echo -n "cog" | ./your_program.sh -E "d.g"   # exit 1 (doesn't start with 'd')
+echo -n "dg"  | ./your_program.sh -E "d.g"   # exit 1 (requires one middle char)
+echo -n "cat" | ./your_program.sh -E "..."   # exit 0 (three dots)
+echo -n "a1b" | ./your_program.sh -E ".\d." # exit 0 (any, digit, any)
+```
+
+---
