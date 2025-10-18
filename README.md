@@ -68,7 +68,7 @@ A step-by-step project to build a simplified `grep` with regex support from scra
   - **`[^]` (empty negated set)** → matches **any character**, since no characters are excluded.
   - **Newlines from stdin** (`echo` without `-n`) may count as characters — be consistent with earlier steps.
 
---
+---
 
 ### Step 6: Combining Character Classes
 - Adds support for **patterns that combine multiple tokens** (`\d`, `\w`, `[abc]`, `[^abc]`, and literals) in sequence.  
@@ -96,3 +96,23 @@ A step-by-step project to build a simplified `grep` with regex support from scra
 
 ---
 
+### Step 7: Start Anchor (`^`)
+- Adds support for the **start-of-string anchor** `^`.
+- **Behavior:** when a pattern starts with `^`, it matches only if the rest of the pattern occurs at the very beginning of the input string. It does not consume a character by itself.
+- **Implementation:**
+  - Tokenizer emits a special start token only if `^` appears at the beginning of the pattern.
+  - Matching is attempted only from index `0` when anchored.
+  - A `^` found elsewhere in the pattern is treated as a literal `^`.
+- **Notes:**
+  - `^` inside a character class (e.g., `[^abc]`) still means negation and is unaffected by this step.
+  - Single-line input only; start-of-line equals start-of-string here.
+
+- **Examples:**
+```bash
+echo -n "log"     | ./your_program.sh -E "^log"           # exit 0 (starts with "log")
+echo -n "logs"    | ./your_program.sh -E "^log"           # exit 0 (starts with "log")
+echo -n "slog"    | ./your_program.sh -E "^log"           # exit 1 (does not start with "log")
+echo -n "123abc"  | ./your_program.sh -E "^[\d][\d][\d]" # exit 0 (three digits at start)
+```
+
+---

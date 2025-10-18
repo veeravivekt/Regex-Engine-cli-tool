@@ -35,6 +35,13 @@ def tokenize(pattern: str):
                 tokens.append(Token("POS_CLASS", chars=set(body)))
             i = j + 1
             continue
+        elif ch == "^":
+            # Treat '^' as start-anchor only if it appears at the start of the pattern
+            if i == 0:
+                tokens.append(Token("START_STRING"))
+            else:
+                tokens.append(Token("LITERAL", value="^"))
+            i += 1
         else:
             tokens.append(Token("LITERAL", value=ch))
             i += 1
@@ -64,6 +71,10 @@ def match_from(tokens, input_str, start):
 
 def match_pattern(input_line: str, pattern: str) -> bool:
     tokens = tokenize(pattern)
+
+    if tokens and tokens[0].type == "START_STRING":
+        return match_from(tokens[1:], input_line, 0)
+
     for start in range(len(input_line) - len(tokens) + 1):
         if match_from(tokens, input_line, start):
             return True
