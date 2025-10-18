@@ -36,11 +36,16 @@ def tokenize(pattern: str):
             i = j + 1
             continue
         elif ch == "^":
-            # Treat '^' as start-anchor only if it appears at the start of the pattern
             if i == 0:
                 tokens.append(Token("START_STRING"))
             else:
                 tokens.append(Token("LITERAL", value="^"))
+            i += 1
+        elif ch == "$":
+            if i == len(pattern) - 1:
+                tokens.append(Token("END_STRING"))
+            else:
+                tokens.append(Token("LITERAL", value="$"))
             i += 1
         else:
             tokens.append(Token("LITERAL", value=ch))
@@ -72,11 +77,33 @@ def match_from(tokens, input_str, start):
 def match_pattern(input_line: str, pattern: str) -> bool:
     tokens = tokenize(pattern)
 
-    if tokens and tokens[0].type == "START_STRING":
-        return match_from(tokens[1:], input_line, 0)
+    if not tokens:
+        return False
 
-    for start in range(len(input_line) - len(tokens) + 1):
-        if match_from(tokens, input_line, start):
+    anchored_start = tokens[0].type == "START_STRING"
+    anchored_end = tokens[-1].type == "END_STRING"
+
+    start_idx = 0
+    inner_tokens = tokens[1:] if anchored_start else tokens
+    if anchored_end:
+        inner_tokens = inner_tokens[:-1]
+
+    if anchored_start and anchored_end:
+        if len(inner_tokens) != len(input_line):
+            return False
+        return match_from(inner_tokens, input_line, 0)
+
+    if anchored_start:
+        return match_from(inner_tokens, input_line, 0)
+
+    if anchored_end:
+        start_idx = len(input_line) - len(inner_tokens)
+        if start_idx < 0:
+            return False
+        return match_from(inner_tokens, input_line, start_idx)
+
+    for start in range(len(input_line) - len(inner_tokens) + 1):
+        if match_from(inner_tokens, input_line, start):
             return True
     return False
 

@@ -116,3 +116,28 @@ echo -n "123abc"  | ./your_program.sh -E "^[\d][\d][\d]" # exit 0 (three digits 
 ```
 
 ---
+
+
+
+### Step 8: End Anchor (`$`)
+- Adds support for the **end-of-string anchor** `$`.
+- **Behavior:** when a pattern ends with `$`, it matches only if the preceding part of the pattern ends exactly at the end of the input string. `$` does not consume a character by itself.
+- **Implementation:**
+  - Tokenizer emits a special end token only if `$` appears at the end of the pattern.
+  - When end-anchored, matching is aligned to the end of the input.
+  - A `$` found elsewhere in the pattern is treated as a literal `$`.
+- **Combining anchors:** You can combine `^` and `$` (e.g., `^dog$`) to require the entire string matches exactly.
+- **Notes:** Single-line input only; end-of-line equals end-of-string here.
+
+- **Examples:**
+```bash
+echo -n "dog"       | ./your_program.sh -E "dog$"        # exit 0 (ends with "dog")
+echo -n "hotdog"    | ./your_program.sh -E "dog$"        # exit 0 (ends with "dog")
+echo -n "dogs"      | ./your_program.sh -E "dog$"        # exit 1 (does not end with "dog")
+echo -n "abc123"    | ./your_program.sh -E "[\d][\d][\d]$" # exit 0 (three digits at end)
+echo -n "abc123@"   | ./your_program.sh -E "\w\w\w$"    # exit 1 (does not end with 3 word chars)
+echo -n "abc123cde" | ./your_program.sh -E "\w\w\w$"    # exit 0 (three word chars at end)
+echo -n "dog"       | ./your_program.sh -E "^dog$"       # exit 0 (exact match)
+```
+
+---
