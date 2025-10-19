@@ -247,3 +247,19 @@ echo -n "foo-bar-foo-bar"     | ./your_program.sh -E "(\w+)-(\w+)-\1-\2"        
 ```
 
 ---
+
+
+### Step 15: Nested Capturing Groups and Backreferences
+- Adds support documentation for nested capturing groups and how their backreferences are numbered.
+- **Numbering rules:**
+  - Groups are numbered by the position of their opening parenthesis from left to right.
+  - The outer group gets the earlier number; inner groups get numbers as they appear.
+  - `\N` refers to the Nth group’s exact matched text.
+- **Examples:**
+```bash
+echo -n "'cat and cat' is the same as 'cat and cat'" | ./your_program.sh -E "('(cat) and \2') is the same as \1" # 0
+echo -n "dog-dog" | ./your_program.sh -E "((dog)-\2)"                                                         # 0
+echo -n "cat cat and cat cat" | ./your_program.sh -E "((\w+) \2) and \1"                                      # 0
+```
+
+---
