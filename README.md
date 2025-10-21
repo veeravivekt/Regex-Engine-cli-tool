@@ -263,3 +263,27 @@ echo -n "cat cat and cat cat" | ./your_program.sh -E "((\w+) \2) and \1"        
 ```
 
 ---
+
+### Step 17: File Search (Multi-line Files)
+- Extends file searching to handle multi-line files.
+- **Behavior:**
+  - Reads the file line by line.
+  - Prints every line that matches the pattern (full line).
+  - Exits with code 0 if any line matched; 1 if none matched.
+- **Examples:**
+```bash
+echo "banana" > fruits.txt
+echo "grape" >> fruits.txt
+echo "blackberry" >> fruits.txt
+echo "blueberry" >> fruits.txt
+
+./your_program.sh -E ".*berry" fruits.txt
+# prints:
+blackberry
+blueberry
+
+./your_program.sh -E "carrot" fruits.txt
+# prints nothing, exit 1
+```
+
+---

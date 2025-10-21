@@ -128,7 +128,7 @@ def tokenize(pattern: str, state=None):
                 tokens.append(Token("LITERAL", value="$"))
             i += 1
         elif ch == "+":
-            if tokens and tokens[-1].type not in ("START_STRING", "END_STRING", "ONE_OR_MORE", "ZERO_OR_ONE"):
+            if tokens and tokens[-1].type not in ("START_STRING", "END_STRING", "ONE_OR_MORE", "ZERO_OR_ONE", "ZERO_OR_MORE"):
                 prev = tokens.pop()
                 tokens.append(Token("ONE_OR_MORE", value=prev))
             else:
@@ -138,11 +138,18 @@ def tokenize(pattern: str, state=None):
             tokens.append(Token("ANY"))
             i += 1
         elif ch == "?":
-            if tokens and tokens[-1].type not in ("START_STRING", "END_STRING", "ONE_OR_MORE", "ZERO_OR_ONE"):
+            if tokens and tokens[-1].type not in ("START_STRING", "END_STRING", "ONE_OR_MORE", "ZERO_OR_ONE", "ZERO_OR_MORE"):
                 prev = tokens.pop()
                 tokens.append(Token("ZERO_OR_ONE", value=prev))
             else:
                 tokens.append(Token("LITERAL", value="?"))
+            i += 1
+        elif ch == "*":
+            if tokens and tokens[-1].type not in ("START_STRING", "END_STRING", "ONE_OR_MORE", "ZERO_OR_ONE", "ZERO_OR_MORE"):
+                prev = tokens.pop()
+                tokens.append(Token("ZERO_OR_MORE", value=prev))
+            else:
+                tokens.append(Token("LITERAL", value="*"))
             i += 1
         else:
             tokens.append(Token("LITERAL", value=ch))
@@ -236,6 +243,16 @@ def match_tokens(tokens, input_str, start_index, must_end_at_eos, capture_start_
                     return True
             return dfs(token_index + 1, input_index, capture_start_idx_stack, captures)
 
+        if tok.type == "ZERO_OR_MORE":
+            base = tok.value
+            j = input_index
+            while j < len(input_str) and token_matches(base, input_str[j]):
+                j += 1
+            for used in range(j - input_index, -1, -1):
+                if dfs(token_index + 1, input_index + used, capture_start_idx_stack, captures):
+                    return True
+            return False
+
         if input_index >= len(input_str):
             return False
         if not token_matches(tok, input_str[input_index]):
@@ -276,15 +293,30 @@ def match_pattern(input_line: str, pattern: str) -> bool:
 
 def main():
     if len(sys.argv) < 3 or sys.argv[1] != "-E":
-        print("Usage: ./your_program.sh -E <pattern>", file=sys.stderr)
+        print("Usage: ./your_program.sh -E <pattern> [file]", file=sys.stderr)
         sys.exit(1)
 
     pattern = sys.argv[2]
-    input_line = sys.stdin.read()
 
-    print("Logs from your program will appear here!", file=sys.stderr)
-
-    sys.exit(0 if match_pattern(input_line, pattern) else 1)
+    if len(sys.argv) >= 4:
+        file_path = sys.argv[3]
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+        except Exception as e:
+            print(str(e), file=sys.stderr)
+            sys.exit(1)
+        any_matched = False
+        for raw_line in lines:
+            test_line = raw_line[:-1] if raw_line.endswith("\n") else raw_line
+            if match_pattern(test_line, pattern):
+                print(raw_line, end="")
+                any_matched = True
+        sys.exit(0 if any_matched else 1)
+    else:
+        input_line = sys.stdin.read()
+        print("Logs from your program will appear here!", file=sys.stderr)
+        sys.exit(0 if match_pattern(input_line, pattern) else 1)
 
 if __name__ == "__main__":
     main()
