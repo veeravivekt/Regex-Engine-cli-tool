@@ -323,7 +323,10 @@ def main():
                                     for raw_line in f:
                                         test_line = raw_line[:-1] if raw_line.endswith("\n") else raw_line
                                         if match_pattern(test_line, pattern):
-                                            print(f"{file_path}:{raw_line}", end="")
+                                            if raw_line.endswith("\n"):
+                                                print(f"{file_path}:{raw_line}", end="")
+                                            else:
+                                                print(f"{file_path}:{raw_line}")
                                             any_matched = True
                             except Exception as e:
                                 print(str(e), file=sys.stderr)
@@ -334,7 +337,10 @@ def main():
                             for raw_line in f:
                                 test_line = raw_line[:-1] if raw_line.endswith("\n") else raw_line
                                 if match_pattern(test_line, pattern):
-                                    print(f"{base}:{raw_line}", end="")
+                                    if raw_line.endswith("\n"):
+                                        print(f"{base}:{raw_line}", end="")
+                                    else:
+                                        print(f"{base}:{raw_line}")
                                     any_matched = True
                     except Exception as e:
                         print(str(e), file=sys.stderr)
@@ -348,9 +354,15 @@ def main():
                             test_line = raw_line[:-1] if raw_line.endswith("\n") else raw_line
                             if match_pattern(test_line, pattern):
                                 if multi_file:
-                                    print(f"{file_path}:{raw_line}", end="")
+                                    if raw_line.endswith("\n"):
+                                        print(f"{file_path}:{raw_line}", end="")
+                                    else:
+                                        print(f"{file_path}:{raw_line}")
                                 else:
-                                    print(raw_line, end="")
+                                    if raw_line.endswith("\n"):
+                                        print(raw_line, end="")
+                                    else:
+                                        print(raw_line)
                                 any_matched = True
                 except Exception as e:
                     print(str(e), file=sys.stderr)
