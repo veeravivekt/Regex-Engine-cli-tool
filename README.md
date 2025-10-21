@@ -287,3 +287,28 @@ blueberry
 ```
 
 ---
+
+### Step 18: Searching Multiple Files
+- Extends file search to multiple files, printing matching lines prefixed with the filename.
+- **Behavior:**
+  - Processes each file independently.
+  - Prints `filename:line` for each matching line when multiple files are provided.
+  - Exits with code 0 if any match across all files; 1 otherwise.
+- **Examples:**
+```bash
+echo "banana" > fruits.txt
+echo "blueberry" >> fruits.txt
+echo "broccoli" > vegetables.txt
+echo "carrot" >> vegetables.txt
+
+./your_program.sh -E "b.*$" fruits.txt vegetables.txt
+# prints:
+fruits.txt:banana
+fruits.txt:blueberry
+vegetables.txt:broccoli
+
+./your_program.sh -E "missing_fruit" fruits.txt vegetables.txt
+# prints nothing, exit 1
+```
+
+---

@@ -299,19 +299,24 @@ def main():
     pattern = sys.argv[2]
 
     if len(sys.argv) >= 4:
-        file_path = sys.argv[3]
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                lines = f.readlines()
-        except Exception as e:
-            print(str(e), file=sys.stderr)
-            sys.exit(1)
+        file_paths = sys.argv[3:]
+        multi_file = len(file_paths) > 1
         any_matched = False
-        for raw_line in lines:
-            test_line = raw_line[:-1] if raw_line.endswith("\n") else raw_line
-            if match_pattern(test_line, pattern):
-                print(raw_line, end="")
-                any_matched = True
+        for file_path in file_paths:
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    lines = f.readlines()
+            except Exception as e:
+                print(str(e), file=sys.stderr)
+                sys.exit(1)
+            for raw_line in lines:
+                test_line = raw_line[:-1] if raw_line.endswith("\n") else raw_line
+                if match_pattern(test_line, pattern):
+                    if multi_file:
+                        print(f"{file_path}:{raw_line}", end="")
+                    else:
+                        print(raw_line, end="")
+                    any_matched = True
         sys.exit(0 if any_matched else 1)
     else:
         input_line = sys.stdin.read()
