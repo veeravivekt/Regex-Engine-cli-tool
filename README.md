@@ -312,3 +312,31 @@ vegetables.txt:broccoli
 ```
 
 ---
+
+### Step 19: Recursive Search (`-r`)
+- Adds support for recursive search through directories when `-r` is provided.
+- **Behavior:**
+  - Walks the provided directories recursively using the filesystem order.
+  - Prints `path/to/file:line` for each matching line.
+  - Exits with code 0 if any match across all files; 1 otherwise.
+- **Examples:**
+```bash
+mkdir -p dir/subdir
+echo "pear" > dir/fruits.txt
+echo "strawberry" >> dir/fruits.txt
+echo "celery" > dir/subdir/vegetables.txt
+echo "carrot" >> dir/subdir/vegetables.txt
+echo "cucumber" > dir/vegetables.txt
+echo "corn" >> dir/vegetables.txt
+
+./your_program.sh -r -E ".*er" dir/
+# dir/fruits.txt:strawberry
+# dir/subdir/vegetables.txt:celery
+# dir/vegetables.txt:cucumber
+
+./your_program.sh -r -E ".*ar" dir/
+# dir/fruits.txt:pear
+# dir/subdir/vegetables.txt:carrot
+```
+
+---

@@ -292,36 +292,75 @@ def match_pattern(input_line: str, pattern: str) -> bool:
     return False
 
 def main():
-    if len(sys.argv) < 3 or sys.argv[1] != "-E":
-        print("Usage: ./your_program.sh -E <pattern> [file]", file=sys.stderr)
+    if len(sys.argv) < 3:
+        print("Usage: ./your_program.sh [-r] -E <pattern> [path ...]", file=sys.stderr)
         sys.exit(1)
 
-    pattern = sys.argv[2]
+    recursive = False
+    arg_idx = 1
+    if sys.argv[arg_idx] == "-r":
+        recursive = True
+        arg_idx += 1
 
-    if len(sys.argv) >= 4:
-        file_paths = sys.argv[3:]
-        multi_file = len(file_paths) > 1
+    if arg_idx >= len(sys.argv) or sys.argv[arg_idx] != "-E":
+        print("Usage: ./your_program.sh [-r] -E <pattern> [path ...]", file=sys.stderr)
+        sys.exit(1)
+
+    pattern = sys.argv[arg_idx + 1] if arg_idx + 1 < len(sys.argv) else ""
+
+    paths = sys.argv[arg_idx + 2 :]
+    if paths:
         any_matched = False
-        for file_path in file_paths:
-            try:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    lines = f.readlines()
-            except Exception as e:
-                print(str(e), file=sys.stderr)
-                sys.exit(1)
-            for raw_line in lines:
-                test_line = raw_line[:-1] if raw_line.endswith("\n") else raw_line
-                if match_pattern(test_line, pattern):
-                    if multi_file:
-                        print(f"{file_path}:{raw_line}", end="")
-                    else:
-                        print(raw_line, end="")
-                    any_matched = True
+        if recursive:
+            import os
+            for base in paths:
+                if os.path.isdir(base):
+                    for root, _dirs, files in os.walk(base):
+                        for name in files:
+                            file_path = os.path.join(root, name)
+                            try:
+                                with open(file_path, "r", encoding="utf-8") as f:
+                                    for raw_line in f:
+                                        test_line = raw_line[:-1] if raw_line.endswith("\n") else raw_line
+                                        if match_pattern(test_line, pattern):
+                                            print(f"{file_path}:{raw_line}", end="")
+                                            any_matched = True
+                            except Exception as e:
+                                print(str(e), file=sys.stderr)
+                                sys.exit(1)
+                else:
+                    try:
+                        with open(base, "r", encoding="utf-8") as f:
+                            for raw_line in f:
+                                test_line = raw_line[:-1] if raw_line.endswith("\n") else raw_line
+                                if match_pattern(test_line, pattern):
+                                    print(f"{base}:{raw_line}", end="")
+                                    any_matched = True
+                    except Exception as e:
+                        print(str(e), file=sys.stderr)
+                        sys.exit(1)
+        else:
+            multi_file = len(paths) > 1
+            for file_path in paths:
+                try:
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        for raw_line in f:
+                            test_line = raw_line[:-1] if raw_line.endswith("\n") else raw_line
+                            if match_pattern(test_line, pattern):
+                                if multi_file:
+                                    print(f"{file_path}:{raw_line}", end="")
+                                else:
+                                    print(raw_line, end="")
+                                any_matched = True
+                except Exception as e:
+                    print(str(e), file=sys.stderr)
+                    sys.exit(1)
+
         sys.exit(0 if any_matched else 1)
-    else:
-        input_line = sys.stdin.read()
-        print("Logs from your program will appear here!", file=sys.stderr)
-        sys.exit(0 if match_pattern(input_line, pattern) else 1)
+
+    input_line = sys.stdin.read()
+    print("Logs from your program will appear here!", file=sys.stderr)
+    sys.exit(0 if match_pattern(input_line, pattern) else 1)
 
 if __name__ == "__main__":
     main()
