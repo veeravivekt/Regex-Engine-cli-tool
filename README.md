@@ -1,5 +1,6 @@
 # Custom Regex Engine
 
+![Regex Engine cli](image-1.png)
 A step-by-step project to build a simplified `grep` with regex support from scratch.  
 
 ---
