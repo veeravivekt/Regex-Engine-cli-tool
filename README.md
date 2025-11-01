@@ -1,6 +1,6 @@
 # Custom Regex Engine
 
-![Regex Engine cli](image-1.png)
+![Regex Engine cli](image.png)
 A simplified regex engine implementing 19 progressive features including literal characters, character classes, quantifiers, alternation, capturing groups, backreferences, and file search capabilities.
 
 
