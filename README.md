@@ -1,7 +1,8 @@
 # Custom Regex Engine
 
 ![Regex Engine cli](image-1.png)
-A step-by-step project to build a simplified `grep` with regex support from scratch.  
+A simplified regex engine implementing 19 progressive features including literal characters, character classes, quantifiers, alternation, capturing groups, backreferences, and file search capabilities.
+
 
 ---
 
